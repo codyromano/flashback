@@ -49,16 +49,32 @@ npm run preview
 
 ## 🧪 Testing
 
+
+### Unit Tests (Jest)
+
 ```bash
-# Run all tests
-npm test
+# Run all unit tests
+npx jest
 
-# Run tests in watch mode
-npm test -- --watch
+# Run unit tests in watch mode
+npx jest --watch
 
-# Run tests with coverage
-npm test -- --coverage
+# Run unit tests with coverage
+npx jest --coverage
 ```
+
+### Integration Tests (Playwright)
+
+```bash
+# Run all browser integration tests
+npx playwright test
+
+# View Playwright test results and traces
+npx playwright show-report
+npx playwright show-trace test-results/<trace-file>.zip
+```
+
+> **Note:** Playwright tests require Chrome, Firefox, or WebKit installed. The integration tests will launch browsers and require microphone permissions.
 
 ## 🏗️ Architecture
 

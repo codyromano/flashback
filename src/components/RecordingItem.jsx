@@ -6,7 +6,8 @@ export function RecordingItem({
   onPlay, 
   onRename, 
   onToggleFavorite, 
-  onDelete 
+  onDelete, 
+  isPlaying 
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(recording.name);
@@ -42,8 +43,16 @@ export function RecordingItem({
     return date.toLocaleDateString();
   };
 
+  const handlePlayClick = async () => {
+    try {
+      await onPlay(recording);
+    } catch (e) {
+      // no-op
+    }
+  };
+
   return (
-    <div className="recording-item card fade-in">
+    <div className="recording-item card fade-in" data-testid="recording-item">
       <div className="recording-header">
         {isEditing ? (
           <input
@@ -95,9 +104,10 @@ export function RecordingItem({
       <div className="recording-actions">
         <button 
           className="btn btn-primary"
-          onClick={() => onPlay(recording)}
+          onClick={handlePlayClick}
+          disabled={isPlaying}
         >
-          ▶️ Play
+          {isPlaying ? '🔊 Playing' : '▶️ Play'}
         </button>
         
         {!showDeleteConfirm ? (

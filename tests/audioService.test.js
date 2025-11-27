@@ -74,7 +74,7 @@ describe('AudioRecordingService', () => {
     service.startCapture();
     expect(service.getState().isRecording).toBe(true);
     
-    const result = service.stopCapture();
+    const result = await service.stopCapture();
     expect(service.getState().isRecording).toBe(false);
     expect(result).toHaveProperty('blob');
     expect(result).toHaveProperty('duration');
@@ -88,12 +88,12 @@ describe('AudioRecordingService', () => {
     service.startBuffering();
     
     // Start recording
-    let result = service.toggleRecording();
+    let result = await service.toggleRecording();
     expect(result).toBeNull();
     expect(service.getState().isRecording).toBe(true);
     
     // Stop recording
-    result = service.toggleRecording();
+    result = await service.toggleRecording();
     expect(result).toBeDefined();
     expect(service.getState().isRecording).toBe(false);
     

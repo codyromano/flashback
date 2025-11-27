@@ -47,6 +47,7 @@ export class CircularAudioBuffer {
 export class AudioRecordingService {
   constructor() {
     this.mediaRecorder = null;
+    this.recordingMediaRecorder = null;
     this.stream = null;
     this.circularBuffer = new CircularAudioBuffer();
     this.currentRecording = [];
@@ -143,43 +144,79 @@ export class AudioRecordingService {
       throw new Error('Must start buffering before capturing');
     }
 
-    // Get buffered chunks and start recording new ones
+    // Get buffered chunks as the start of our recording
     this.currentRecording = this.circularBuffer.getChunks();
     this.isRecording = true;
+    
+    // Stop the buffering recorder
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+    
+    // Create a new MediaRecorder for the actual recording
+    // This ensures the WebM container is properly structured
+    this.recordingMediaRecorder = new MediaRecorder(this.stream, {
+      mimeType: AUDIO_MIME_TYPE,
+      audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
+    });
+    
+    this.recordingMediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        this.currentRecording.push(event.data);
+      }
+    };
+    
+    // Start recording
+    this.recordingMediaRecorder.start(CHUNK_DURATION_MS);
   }
 
   /**
    * Stop capturing and return the complete recording
    */
-  stopCapture() {
+  async stopCapture() {
     if (!this.isRecording) {
       return null;
     }
 
     this.isRecording = false;
 
-    // Create blob from all chunks
+    // Stop the recording MediaRecorder and wait for final chunks
+    if (this.recordingMediaRecorder && this.recordingMediaRecorder.state === 'recording') {
+      await new Promise((resolve) => {
+        this.recordingMediaRecorder.onstop = resolve;
+        this.recordingMediaRecorder.stop();
+      });
+    }
+
+    // Create blob from buffered chunks + recorded chunks
     const recordingBlob = new Blob(this.currentRecording, { type: AUDIO_MIME_TYPE });
     
     // Calculate duration (approximate based on chunks)
     const durationMs = this.currentRecording.length * CHUNK_DURATION_MS;
 
     // Clear current recording
+    const chunks = this.currentRecording;
     this.currentRecording = [];
+    
+    // Restart buffering recorder
+    if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
+      this.mediaRecorder.start(CHUNK_DURATION_MS);
+    }
 
     return {
       blob: recordingBlob,
       duration: durationMs,
       mimeType: AUDIO_MIME_TYPE,
+      chunkCount: chunks.length,
     };
   }
 
   /**
    * Toggle recording state
    */
-  toggleRecording() {
+  async toggleRecording() {
     if (this.isRecording) {
-      return this.stopCapture();
+      return await this.stopCapture();
     } else {
       this.startCapture();
       return null;
@@ -206,6 +243,13 @@ export class AudioRecordingService {
         this.mediaRecorder.stop();
       }
       this.mediaRecorder = null;
+    }
+    
+    if (this.recordingMediaRecorder) {
+      if (this.recordingMediaRecorder.state === 'recording') {
+        this.recordingMediaRecorder.stop();
+      }
+      this.recordingMediaRecorder = null;
     }
 
     if (this.stream) {

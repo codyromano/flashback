@@ -10,7 +10,8 @@ export function RecordingsList({
   onRename, 
   onToggleFavorite, 
   onDelete,
-  onLoad 
+  onLoad,
+  playingId
 }) {
   useEffect(() => {
     if (onLoad) {
@@ -64,6 +65,7 @@ export function RecordingsList({
             onRename={onRename}
             onToggleFavorite={onToggleFavorite}
             onDelete={onDelete}
+            isPlaying={playingId === recording.id}
           />
         ))}
       </div>

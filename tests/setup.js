@@ -36,6 +36,21 @@ global.MediaRecorder = class MediaRecorder {
     this.state = 'inactive';
     this.ondataavailable = null;
     this.onerror = null;
+    this.onstop = null;
+    this.eventListeners = {};
+  }
+
+  addEventListener(event, handler) {
+    if (!this.eventListeners[event]) {
+      this.eventListeners[event] = [];
+    }
+    this.eventListeners[event].push(handler);
+  }
+
+  removeEventListener(event, handler) {
+    if (this.eventListeners[event]) {
+      this.eventListeners[event] = this.eventListeners[event].filter(h => h !== handler);
+    }
   }
 
   start(timeslice) {
@@ -44,6 +59,21 @@ global.MediaRecorder = class MediaRecorder {
 
   stop() {
     this.state = 'inactive';
+    // Fire onstop event
+    if (this.onstop) {
+      setTimeout(() => this.onstop(), 0);
+    }
+  }
+
+  requestData() {
+    // Trigger dataavailable event
+    const event = { data: new Blob(['test'], { type: 'audio/webm;codecs=opus' }) };
+    if (this.eventListeners['dataavailable']) {
+      this.eventListeners['dataavailable'].forEach(handler => handler(event));
+    }
+    if (this.ondataavailable) {
+      this.ondataavailable(event);
+    }
   }
 
   static isTypeSupported(mimeType) {

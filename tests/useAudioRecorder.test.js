@@ -51,9 +51,9 @@ describe('useAudioRecorder', () => {
   });
 
   test('should toggle recording', async () => {
-    mockAudioService.toggleRecording.mockReturnValue({ blob: new Blob(), duration: 5000 });
+    mockAudioService.toggleRecording.mockResolvedValue({ blob: new Blob(), duration: 5000 });
     mockAudioService.getState.mockReturnValue({
-      isRecording: true,
+      isRecording: false,
       isBuffering: true,
     });
 
@@ -64,13 +64,13 @@ describe('useAudioRecorder', () => {
     });
 
     let recordingResult;
-    act(() => {
-      recordingResult = result.current.toggleRecording();
+    await act(async () => {
+      recordingResult = await result.current.toggleRecording();
     });
 
     expect(mockAudioService.toggleRecording).toHaveBeenCalled();
     expect(recordingResult).toHaveProperty('blob');
-    expect(result.current.isRecording).toBe(true);
+    expect(result.current.isRecording).toBe(false);
   });
 
   test('should start capture', async () => {
@@ -88,7 +88,7 @@ describe('useAudioRecorder', () => {
   });
 
   test('should stop capture', async () => {
-    mockAudioService.stopCapture.mockReturnValue({ blob: new Blob(), duration: 5000 });
+    mockAudioService.stopCapture.mockResolvedValue({ blob: new Blob(), duration: 5000 });
     mockAudioService.getState.mockReturnValue({
       isRecording: false,
       isBuffering: true,
@@ -101,8 +101,8 @@ describe('useAudioRecorder', () => {
     });
 
     let recordingResult;
-    act(() => {
-      recordingResult = result.current.stopCapture();
+    await act(async () => {
+      recordingResult = await result.current.stopCapture();
     });
 
     expect(mockAudioService.stopCapture).toHaveBeenCalled();

@@ -37,16 +37,19 @@ export function useAudioRecorder() {
   }, []);
 
   // Toggle recording
-  const toggleRecording = useCallback(() => {
+  const toggleRecording = useCallback(async () => {
     if (!audioServiceRef.current) {
       setError('Audio service not initialized');
       return null;
     }
 
     try {
-      const result = audioServiceRef.current.toggleRecording();
-      const state = audioServiceRef.current.getState();
-      setIsRecording(state.isRecording);
+      const result = await audioServiceRef.current.toggleRecording();
+      if (result) {
+        setIsRecording(false);
+      } else {
+        setIsRecording(true);
+      }
       return result;
     } catch (err) {
       setError(err.message);
@@ -70,14 +73,14 @@ export function useAudioRecorder() {
   }, []);
 
   // Stop capture
-  const stopCapture = useCallback(() => {
+  const stopCapture = useCallback(async () => {
     if (!audioServiceRef.current) {
       setError('Audio service not initialized');
       return null;
     }
 
     try {
-      const result = audioServiceRef.current.stopCapture();
+      const result = await audioServiceRef.current.stopCapture();
       setIsRecording(false);
       return result;
     } catch (err) {

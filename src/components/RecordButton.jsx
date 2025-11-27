@@ -9,6 +9,7 @@ export function RecordButton({ isRecording, isBuffering, onToggle, disabled }) {
         onClick={onToggle}
         disabled={disabled || !isBuffering}
         aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+        data-testid="record-btn"
       >
         <div className="record-button-inner">
           {isRecording ? (

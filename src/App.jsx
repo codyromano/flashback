@@ -36,7 +36,7 @@ function App() {
   };
 
   const handleToggleRecording = async () => {
-    const result = toggleRecording();
+    const result = await toggleRecording();
     
     if (result) {
       // Recording stopped, save it
@@ -46,21 +46,67 @@ function App() {
         });
         showNotification('Recording saved successfully!', 'success');
       } catch (err) {
+        console.error('Failed to save recording:', err);
         showNotification('Failed to save recording', 'error');
       }
     }
   };
 
-  const handlePlay = (recording) => {
+  // Track currently playing audio and recording
+  const [currentAudio, setCurrentAudio] = useState(null);
+  const [playingId, setPlayingId] = useState(null);
+
+  const handlePlay = (recording, onPlaybackEnd) => {
+    // Pause any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+      setPlayingId(null);
+    }
     // Create audio URL and play
-    const url = URL.createObjectURL(recording.audioBlob);
-    const audio = new Audio(url);
-    audio.play().catch(err => {
-      showNotification('Failed to play recording', 'error');
+    setPlayingId(recording.id);
+    console.log('Playing recording:', {
+      id: recording.id,
+      blobSize: recording.audioBlob?.size,
+      blobType: recording.audioBlob?.type,
     });
-    
+    if (!recording.audioBlob || recording.audioBlob.size === 0) {
+      console.error('Invalid audio blob:', recording.audioBlob);
+      showNotification('Recording has no audio data', 'error');
+      if (onPlaybackEnd) onPlaybackEnd();
+      setPlayingId(null);
+      return;
+    }
+    // Ensure the blob has the correct MIME type
+    const audioBlob = recording.audioBlob.type 
+      ? recording.audioBlob 
+      : new Blob([recording.audioBlob], { type: 'audio/webm' });
+    const url = URL.createObjectURL(audioBlob);
+    const audio = new Audio(url);
+    setCurrentAudio(audio);
+    audio.addEventListener('loadedmetadata', () => {
+      console.log('Audio loaded successfully, duration:', audio.duration);
+    });
+    audio.play().catch(err => {
+      console.error('Failed to play recording:', err);
+      console.error('Blob details:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        url: url
+      });
+      showNotification('Failed to play recording', 'error');
+      if (onPlaybackEnd) onPlaybackEnd();
+      setCurrentAudio(null);
+      setPlayingId(null);
+    });
     // Clean up URL after audio finishes
-    audio.onended = () => URL.revokeObjectURL(url);
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (onPlaybackEnd) onPlaybackEnd();
+      setCurrentAudio(null);
+      setPlayingId(null);
+    };
   };
 
   const handleRename = async (id, name) => {
@@ -97,7 +143,7 @@ function App() {
       </header>
 
       {notification && (
-        <div className={`notification ${notification.type}`}>
+        <div className={`notification ${notification.type}`} data-testid={notification.type === 'error' ? 'notification-error' : undefined}>
           {notification.message}
         </div>
       )}
@@ -159,6 +205,7 @@ function App() {
             onToggleFavorite={handleToggleFavorite}
             onDelete={handleDelete}
             onLoad={loadRecordings}
+            playingId={playingId}
           />
         )}
       </main>
