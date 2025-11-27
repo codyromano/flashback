@@ -144,28 +144,28 @@ export class AudioRecordingService {
       throw new Error('Must start buffering before capturing');
     }
 
-    // Get buffered chunks as the start of our recording
-    this.currentRecording = this.circularBuffer.getChunks();
+    // Start a new recording session
+    this.currentRecording = [];
     this.isRecording = true;
-    
+
     // Stop the buffering recorder
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop();
     }
-    
+
     // Create a new MediaRecorder for the actual recording
     // This ensures the WebM container is properly structured
     this.recordingMediaRecorder = new MediaRecorder(this.stream, {
       mimeType: AUDIO_MIME_TYPE,
       audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
     });
-    
+
     this.recordingMediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
         this.currentRecording.push(event.data);
       }
     };
-    
+
     // Start recording
     this.recordingMediaRecorder.start(CHUNK_DURATION_MS);
   }
@@ -188,16 +188,16 @@ export class AudioRecordingService {
       });
     }
 
-    // Create blob from buffered chunks + recorded chunks
+    // Create blob only from the chunks produced by the recording MediaRecorder
     const recordingBlob = new Blob(this.currentRecording, { type: AUDIO_MIME_TYPE });
-    
+
     // Calculate duration (approximate based on chunks)
     const durationMs = this.currentRecording.length * CHUNK_DURATION_MS;
 
     // Clear current recording
     const chunks = this.currentRecording;
     this.currentRecording = [];
-    
+
     // Restart buffering recorder
     if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
       this.mediaRecorder.start(CHUNK_DURATION_MS);

@@ -11,7 +11,7 @@ export function RecordingItem({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(recording.name);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Remove confirmation state
 
   const handleRename = () => {
     if (editName.trim() && editName !== recording.name) {
@@ -22,7 +22,6 @@ export function RecordingItem({
 
   const handleDelete = () => {
     onDelete(recording.id);
-    setShowDeleteConfirm(false);
   };
 
   const formatDuration = (ms) => {
@@ -110,30 +109,12 @@ export function RecordingItem({
           {isPlaying ? '🔊 Playing' : '▶️ Play'}
         </button>
         
-        {!showDeleteConfirm ? (
-          <button 
-            className="btn btn-secondary"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            🗑️ Delete
-          </button>
-        ) : (
-          <div className="delete-confirm">
-            <button 
-              className="btn btn-secondary"
-              onClick={handleDelete}
-              style={{ background: 'var(--error)', color: 'white' }}
-            >
-              Confirm
-            </button>
-            <button 
-              className="btn btn-secondary"
-              onClick={() => setShowDeleteConfirm(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
+        <button 
+          className="btn btn-secondary"
+          onClick={handleDelete}
+        >
+          🗑️ Delete
+        </button>
       </div>
     </div>
   );
