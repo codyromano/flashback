@@ -92,11 +92,105 @@ global.navigator.mediaDevices = {
 
 // Mock AudioContext
 global.AudioContext = class AudioContext {
+  constructor() {
+    this.sampleRate = 48000;
+    this.destination = {};
+  }
+  
   decodeAudioData(buffer) {
     return Promise.resolve({
       numberOfChannels: 1,
+      sampleRate: 48000,
       getChannelData: () => new Float32Array(100),
     });
+  }
+  
+  createMediaStreamSource(stream) {
+    return {
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+    };
+  }
+  
+  createScriptProcessor(bufferSize, inputChannels, outputChannels) {
+    const processor = {
+      onaudioprocess: null,
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+    };
+    
+    // Simulate audio processing in tests
+    setTimeout(() => {
+      if (processor.onaudioprocess) {
+        const mockEvent = {
+          inputBuffer: {
+            numberOfChannels: 2,
+            getChannelData: (channel) => new Float32Array(bufferSize),
+          },
+        };
+        processor.onaudioprocess(mockEvent);
+      }
+    }, 10);
+    
+    return processor;
+  }
+  
+  createBuffer(channels, length, sampleRate) {
+    const buffer = {
+      numberOfChannels: channels,
+      length,
+      sampleRate,
+      getChannelData: (channel) => new Float32Array(length),
+    };
+    return buffer;
+  }
+  
+  createBufferSource() {
+    const source = {
+      buffer: null,
+      connect: jest.fn(),
+      start: jest.fn(),
+      onended: null,
+    };
+    
+    // Simulate audio ending immediately
+    setTimeout(() => {
+      if (source.onended) {
+        source.onended();
+      }
+    }, 10);
+    
+    return source;
+  }
+  
+  createMediaStreamDestination() {
+    return {
+      stream: {
+        getTracks: () => [{ stop: jest.fn() }],
+      },
+    };
+  }
+  
+  close() {
+    return Promise.resolve();
+  }
+};
+
+// Mock OfflineAudioContext
+global.OfflineAudioContext = class OfflineAudioContext extends global.AudioContext {
+  constructor(channels, length, sampleRate) {
+    super();
+    this.length = length;
+  }
+  
+  startRendering() {
+    const mockBuffer = {
+      numberOfChannels: 2,
+      length: this.length,
+      sampleRate: this.sampleRate,
+      getChannelData: (channel) => new Float32Array(this.length),
+    };
+    return Promise.resolve(mockBuffer);
   }
 };
 

@@ -154,23 +154,7 @@ describe('RecordingItem', () => {
     expect(onRename).not.toHaveBeenCalled();
   });
 
-  test('should show delete confirmation when delete clicked', () => {
-    render(
-      <RecordingItem
-        recording={mockRecording}
-        onPlay={jest.fn()}
-        onRename={jest.fn()}
-        onToggleFavorite={jest.fn()}
-        onDelete={jest.fn()}
-      />
-    );
-    
-    fireEvent.click(screen.getByText(/Delete/));
-    expect(screen.getByText('Confirm')).toBeInTheDocument();
-    expect(screen.getByText('Cancel')).toBeInTheDocument();
-  });
-
-  test('should call onDelete when confirmed', () => {
+  test('should call onDelete when delete clicked', () => {
     const onDelete = jest.fn();
     render(
       <RecordingItem
@@ -183,26 +167,7 @@ describe('RecordingItem', () => {
     );
     
     fireEvent.click(screen.getByText(/Delete/));
-    fireEvent.click(screen.getByText('Confirm'));
     expect(onDelete).toHaveBeenCalledWith('test-123');
-  });
-
-  test('should cancel delete when cancel clicked', () => {
-    const onDelete = jest.fn();
-    render(
-      <RecordingItem
-        recording={mockRecording}
-        onPlay={jest.fn()}
-        onRename={jest.fn()}
-        onToggleFavorite={jest.fn()}
-        onDelete={onDelete}
-      />
-    );
-    
-    fireEvent.click(screen.getByText(/Delete/));
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(onDelete).not.toHaveBeenCalled();
-    expect(screen.queryByText('Confirm')).not.toBeInTheDocument();
   });
 
   test('should format date as "Today" for today recordings', () => {

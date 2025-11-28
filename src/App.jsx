@@ -41,6 +41,11 @@ function App() {
     if (result) {
       // Recording stopped, save it
       try {
+        console.log('Saving recording:', {
+          blobSize: result.blob?.size,
+          blobType: result.blob?.type,
+          duration: result.duration
+        });
         await addRecording(result.blob, {
           duration: result.duration,
         });
@@ -61,6 +66,10 @@ function App() {
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
+      // Clean up the old URL to prevent memory leaks
+      if (currentAudio.src) {
+        URL.revokeObjectURL(currentAudio.src);
+      }
       setCurrentAudio(null);
       setPlayingId(null);
     }
@@ -81,13 +90,34 @@ function App() {
     // Ensure the blob has the correct MIME type
     const audioBlob = recording.audioBlob.type 
       ? recording.audioBlob 
-      : new Blob([recording.audioBlob], { type: 'audio/webm' });
+      : new Blob([recording.audioBlob], { type: 'audio/wav' });
     const url = URL.createObjectURL(audioBlob);
     const audio = new Audio(url);
     setCurrentAudio(audio);
+    
     audio.addEventListener('loadedmetadata', () => {
-      console.log('Audio loaded successfully, duration:', audio.duration);
+      // WebM files often report Infinity for duration
+      // Use the stored duration from recording metadata instead
+      const displayDuration = isFinite(audio.duration) 
+        ? audio.duration 
+        : (recording.duration / 1000).toFixed(1);
+      console.log('Audio loaded successfully, duration:', displayDuration, 'seconds');
     });
+    
+    audio.addEventListener('error', (e) => {
+      console.error('Audio element error:', e);
+      console.error('Audio error details:', {
+        error: audio.error,
+        networkState: audio.networkState,
+        readyState: audio.readyState
+      });
+      showNotification('Failed to load audio', 'error');
+      URL.revokeObjectURL(url);
+      if (onPlaybackEnd) onPlaybackEnd();
+      setCurrentAudio(null);
+      setPlayingId(null);
+    });
+    
     audio.play().catch(err => {
       console.error('Failed to play recording:', err);
       console.error('Blob details:', {

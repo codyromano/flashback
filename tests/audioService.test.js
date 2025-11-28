@@ -1,45 +1,53 @@
 import { CircularAudioBuffer, AudioRecordingService } from '../src/services/audioService';
 
 describe('CircularAudioBuffer', () => {
-  test('should create a buffer with correct max chunks', () => {
-    const buffer = new CircularAudioBuffer(15000, 1000);
-    expect(buffer.maxChunks).toBe(15);
+  test('should create a buffer with correct max samples', () => {
+    const buffer = new CircularAudioBuffer(15000, 48000, 2);
+    expect(buffer.maxSamples).toBe(48000 * 15); // 15 seconds at 48kHz
   });
 
-  test('should add chunks to buffer', () => {
-    const buffer = new CircularAudioBuffer(15000, 1000);
-    const blob = new Blob(['test'], { type: 'audio/webm' });
+  test('should add samples to buffer', () => {
+    const buffer = new CircularAudioBuffer(1000, 48000, 2); // 1 second
+    const leftChannel = new Float32Array(100);
+    const rightChannel = new Float32Array(100);
     
-    buffer.addChunk(blob);
-    expect(buffer.size()).toBe(1);
+    buffer.addSamples([leftChannel, rightChannel]);
+    expect(buffer.getSampleCount()).toBe(100);
   });
 
-  test('should remove oldest chunk when buffer is full', () => {
-    const buffer = new CircularAudioBuffer(3000, 1000); // Max 3 chunks
+  test('should handle circular wrap-around when buffer is full', () => {
+    const buffer = new CircularAudioBuffer(100, 48000, 2); // Very small buffer
+    const maxSamples = Math.ceil((100 / 1000) * 48000); // ~4800 samples
     
-    for (let i = 0; i < 5; i++) {
-      buffer.addChunk(new Blob([`chunk${i}`], { type: 'audio/webm' }));
+    // Add more samples than buffer can hold
+    for (let i = 0; i < 10; i++) {
+      const samples = [new Float32Array(1000), new Float32Array(1000)];
+      buffer.addSamples(samples);
     }
     
-    expect(buffer.size()).toBe(3);
+    // Should only keep last maxSamples
+    expect(buffer.getSampleCount()).toBe(maxSamples);
   });
 
-  test('should return combined blob', () => {
-    const buffer = new CircularAudioBuffer(15000, 1000);
-    buffer.addChunk(new Blob(['test1'], { type: 'audio/webm' }));
-    buffer.addChunk(new Blob(['test2'], { type: 'audio/webm' }));
+  test('should return samples in chronological order', () => {
+    const buffer = new CircularAudioBuffer(1000, 48000, 2);
+    const samples1 = [new Float32Array([1, 2, 3]), new Float32Array([4, 5, 6])];
+    const samples2 = [new Float32Array([7, 8, 9]), new Float32Array([10, 11, 12])];
     
-    const result = buffer.getBuffer();
-    expect(result).toBeInstanceOf(Blob);
-    expect(result.type).toBe('audio/webm;codecs=opus');
+    buffer.addSamples(samples1);
+    buffer.addSamples(samples2);
+    
+    const result = buffer.getSamples();
+    expect(result).toBeInstanceOf(Float32Array);
+    expect(result.length).toBe(12); // 6 samples * 2 channels
   });
 
   test('should clear buffer', () => {
-    const buffer = new CircularAudioBuffer(15000, 1000);
-    buffer.addChunk(new Blob(['test'], { type: 'audio/webm' }));
+    const buffer = new CircularAudioBuffer(1000, 48000, 2);
+    buffer.addSamples([new Float32Array(100), new Float32Array(100)]);
     
     buffer.clear();
-    expect(buffer.size()).toBe(0);
+    expect(buffer.getSampleCount()).toBe(0);
   });
 });
 
@@ -52,7 +60,8 @@ describe('AudioRecordingService', () => {
   test('should initialize successfully', async () => {
     const service = new AudioRecordingService();
     await expect(service.initialize()).resolves.toBe(true);
-    expect(service.mediaRecorder).toBeDefined();
+    expect(service.audioContext).toBeDefined();
+    expect(service.circularBuffer).toBeDefined();
     service.cleanup();
   });
 
@@ -106,7 +115,7 @@ describe('AudioRecordingService', () => {
     service.startBuffering();
     
     service.cleanup();
-    expect(service.mediaRecorder).toBeNull();
+    expect(service.audioContext).toBeNull();
     expect(service.stream).toBeNull();
     expect(service.getState().isBuffering).toBe(false);
   });
